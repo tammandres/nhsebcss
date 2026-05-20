@@ -1,8 +1,10 @@
 # Analysis of NHSE Bowel Screening data
 
+This repository accompanies the publication "Faecal immunochemical test for haemoglobin positivity rates and outcomes across 18 million episodes in the English Colorectal Cancer Screening Programme between 2019 and 2024".
+
 Andres Tamm
 
-29 November 2025
+21 May 2026
 
 
 # Installation
@@ -18,14 +20,14 @@ Scripts were run in the following order:
 
 ```sh
 cd ./nhsebcss/
-python dataprep.py
-python inclusioncrit.py
-python descriptives.py
-python outcomesdem.py
-python fitpositivity.py
-python episodestime.py
-Rscript modelsdem.R
-python airlock.py
+python dataprep.py       # Prepare the dataset and apply inclusion criteria
+python inclusioncrit.py  # Summarise excluded episodes
+python descriptives.py   # Descriptive statistics table and overall summary of screening outcomes
+python outcomesdem.py    # Screening outcomes by age, sex and deprivation
+python fitpositivity.py  # Summaries of FIT-positive rates
+python episodestime.py   # Characterise number of screening episodes over time
+Rscript modelsdem.R      # Model cancer and non-investigation rates by age, sex, deprivation, screening history
+python airlock.py        # Copy outputs for export from the trusted research environment
 ```
 
 The following outputs are created in the `./results/primary` directory:
