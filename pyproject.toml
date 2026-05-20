@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nhsebcss"
+version = "0.0.1"
+authors = [{name = "Andres Tamm"}]
+description = "Comparing machine learning models to the faecal immunochemical test (FIT) for predicting colorectal cancer"
+readme = "README.md"
+requires-python = ">=3.9"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.urls]
+Homepage = "https://github.com/tammandres/nhsebcss"
+
+[tool.setuptools.packages.find]
+where = ["."]
