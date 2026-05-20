@@ -54,6 +54,14 @@ assert all(c in outcomes for c in outcomes_fit_pos)
 # Create a variable that denotes each year-quarter
 df['year_quarter'] = df.test_kit_logged_year.astype(str) + '-Q' + df.test_kit_logged_quarter.astype(str)
 
+# Update the late-responder episode counts as this was not done when late-responder outcomes were fixed
+# in dataprep.py
+df['days_to_return'] = (df.test_kit_logged_date - df.episode_start_date).dt.days
+mask = (df.episode_subtype != 'Late Responder') & (df.days_to_return >= 181)
+df.loc[mask, 'episode_subtype'].value_counts()
+df.loc[mask, 'episode_subtype'] = 'Late Responder'
+df.episode_subtype.value_counts()
+
 #endregion
 
 
