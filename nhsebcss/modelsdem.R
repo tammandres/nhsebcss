@@ -43,7 +43,7 @@ nrow(df)
 
 # Keep episodes with positive FIT
 outcomes_without_positive_fit <- c('FIT negative', 
-                                   'FIT inadequate participation')
+                                   'No FIT result')
 mask <- df$outcome %in% outcomes_without_positive_fit
 sum(mask)
 df <- df[!mask,]
@@ -162,8 +162,9 @@ write.csv(pred_data, paste(out_path, '/glm_noinvestigation_pred.csv', sep=''),
 
 # Keep episodes with whole colon investigation
 outcomes_without_investigation <- c('FIT negative', 
-                                    'FIT inadequate participation', 
-                                    'FIT positive, no investigation')
+                                    'No FIT result', 
+                                    'FIT positive, no investigation',
+                                    'FIT positive, unknown outcome')
 mask <- df$outcome %in% outcomes_without_investigation
 sum(mask)
 df <- df[!mask,]
