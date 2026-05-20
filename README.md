@@ -30,6 +30,7 @@ Rscript modelsdem.R      # Model cancer and non-investigation rates by age, sex,
 python airlock.py        # Copy outputs for export from the trusted research environment
 ```
 
+# Outputs
 The following outputs are created in the `./results/primary` directory:
 ```
 chisq_outcomes-investigated.*csv            : chisq tests wrt reference level for investigated outcomes by demographics
