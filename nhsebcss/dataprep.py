@@ -625,7 +625,7 @@ dfsub.outcome.value_counts()
 dfsub.outcome.value_counts(normalize=True) * 100
 
 outcomes = dfsub.outcome.unique()
-outcomes_without_investigation = ['FIT negative', 'No FIT result', 'FIT positive, no investigation']
+outcomes_without_investigation = ['FIT negative', 'No FIT result', 'FIT positive, no investigation', 'FIT positive, unknown outcome']
 outcomes_with_investigation = [c for c in outcomes if c not in outcomes_without_investigation]
 dfsub.loc[dfsub.outcome.isin(outcomes_with_investigation), 'outcome'].value_counts(normalize=True) * 100
 
@@ -682,18 +682,18 @@ def remove_episodes(df, epi_rm, n_epi, n_crc, n_pat):
     # Remove episodes
     print('... num epi before removal', df.shape)
     dfsub = df.loc[~df.anon_subject_epis_id.isin(epi_rm)]  
-    print('... num epi after removal', df.shape)
+    print('... num epi after removal', dfsub.shape)
 
-    # Num and percent episodes retrained wrt total num epi (n_epi)
+    # Num and percent episodes removed wrt total num epi (n_epi)
     stats = {} 
     stats['n_epi'] = len(epi_rm)
     stats['p_epi'] = stats['n_epi'] / n_epi * 100
 
-    # Num and percent cancers retained wrt total num crc (n_crc)
-    stats['n_crc'] = dfsub.loc[dfsub.episode_result == 'Cancer Detected'].shape[0]
+    # Num and percent cancers removed wrt total num crc (n_crc)
+    stats['n_crc'] = df.loc[df.anon_subject_epis_id.isin(epi_rm) & (df.episode_result == 'Cancer Detected')].shape[0]
     stats['p_crc'] = stats['n_crc'] / n_crc * 100 
 
-    # Num and percent patients retained
+    # Num and percent patients removed
     stats['n_pat'] = df.anon_screening_subject_id.nunique() - dfsub.anon_screening_subject_id.nunique()
     stats['p_pat'] = stats['n_pat'] / n_pat * 100
     return dfsub, stats
@@ -872,37 +872,5 @@ assert test.all()
 # Sanity check: when reading is < 120, kit_result is normal
 test = dfsub.loc[(dfsub.analyser_reading_used < 120) & (~dfsub.analyser_reading_used.isna()), 'kit_result'] == 'NORMAL'
 assert test.all()
-
-# Estimate again how many LNPCPs may be in high risk findings in included data.
-#  Since 2023, 7.0% of episodes with high-risk findings have pre-existing episode result category as LNPCP
-#  Over all time, 22.2% have at least one premalignant polyp of size 20mm
-#  Therefore, the new category is called "High-risk findings or LNPCP"
-h = dfsub.loc[(dfsub.outcome == 'High-risk findings or LNPCP')]
-h2023 = h.loc[(h.test_kit_logged_year >= 2023)]
-test = (h2023.episode_result == 'LNPCP')
-test.mean() * 100
-test.sum()
-
-test = h.anon_subject_epis_id.isin(polyp_pm_20.anon_subject_epis_id)
-test.mean() * 100
-
-# Estimate again how many LNPCPs may be in the premalignant polyps category in included data.
-#  Since 2023, 0.41% of episodes with the premalignant polyp(s) category have pre-existing episode result as LNPCP
-#  Over all time, 0.12% have at least one premalignant polyp of size 20mm
-# It therefore seems OK to call this "Pre-malignant polyp(s)" and not specifically mention LNPCP
-h = dfsub.loc[(dfsub.outcome == 'Premalignant polyp(s)')]
-h2023 = h.loc[(h.test_kit_logged_year >= 2023)]
-test = (h2023.episode_result == 'LNPCP')
-test.mean() * 100
-test.sum()
-
-test = h.anon_subject_epis_id.isin(polyp_pm_20.anon_subject_epis_id)
-test.mean() * 100
-
-# Since 2023, the pre-existing LNPCP category subdivides 
-# as 90.9% in high-risk and 7.0% in premalignant polyps, and a few other categories
-t = dfsub.loc[(dfsub.episode_result == 'LNPCP') & (dfsub.test_kit_logged_year >= 2023)]
-t.outcome.value_counts(normalize=True) * 100
-t.outcome.value_counts(normalize=False)
 
 #endregion

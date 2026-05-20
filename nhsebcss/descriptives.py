@@ -254,7 +254,7 @@ out = out.set_index('Outcome')
 assert out.loc[outcomes_with_investigation, 'Num episodes'].sum() == out.loc['Episodes with investigation', 'Num episodes']
 assert np.abs(out.loc[outcomes_with_investigation, 'Percent of investigated episodes'].sum() - 100) < 0.01
 assert out.loc[outcomes_fit_pos, 'Num episodes'].sum() == out.loc['FIT positive', 'Num episodes']
-assert np.abs(out.loc[outcomes_fit_pos, 'Percent of investigated episodes'].sum() - 100) < 0.01
+assert np.abs(out.loc[outcomes_fit_pos, 'Percent of FIT positive episodes'].sum() - 100) < 0.01
 
 out['Percent episodes'] = out['Percent episodes'].round(2)
 out['Percent of FIT positive episodes'] = out['Percent of FIT positive episodes'].round(1)

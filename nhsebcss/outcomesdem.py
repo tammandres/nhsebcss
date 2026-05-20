@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as ticker
 from statsmodels.stats.proportion import proportion_confint
-from nhsebcss.utils import grouped_count, hide_low_counts, xtest
+from nhsebcss.utils import grouped_count
 import statsmodels.api as stat
 
 
@@ -511,8 +511,8 @@ ref_level = {'age_group_screen2': '50-59',
              'imd_quintile': '05 - Least deprived',
              'subject_gender': 'Female'}
 
-for r, name in zip([res, res_pos], ['investigated', 'pos']):
-    dfsub = res[['column', 'value', 'outcome', 'ntot', 'count', 'perc']].copy()
+for r, name in zip([res, res_pos, res_all], ['investigated', 'pos', 'all']):
+    dfsub = r[['column', 'value', 'outcome', 'ntot', 'count', 'perc']].copy()
     dfsub = dfsub.sort_values(by=['column', 'value', 'outcome'])
 
     df_ref = dfsub.loc[dfsub.value.isin(ref_level.values())].drop(labels=['value'], axis=1)
