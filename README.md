@@ -24,7 +24,7 @@ python dataprep.py       # Prepare the dataset and apply inclusion criteria
 python inclusioncrit.py  # Summarise excluded episodes
 python descriptives.py   # Descriptive statistics table and overall summary of screening outcomes
 python outcomesdem.py    # Screening outcomes by age, sex and deprivation
-python fitpositivity.py  # Summaries of FIT-positive rates
+python fitpositivity.py  # Summarise FIT-positive rates overall and by age, sex, deprivation
 python episodestime.py   # Characterise number of screening episodes over time
 Rscript modelsdem.R      # Model cancer and non-investigation rates by age, sex, deprivation, screening history
 python airlock.py        # Copy outputs for export from the trusted research environment
@@ -57,25 +57,3 @@ table1.*csv                                 : descriptive statistics for partici
 table2.*csv                                 : counts/percentages for screening outcomes overall
 table3.*csv                                 : counts/percentages of FIT-positive episodes by threshold
 ```
-
-Note about the scripts:
-
-* `airlock.py`  : copy subset of outputs for export from the trusted research environment
-
-* `dataprep.py` : prepare dataset for analysis (extracting relevant kit result per episode, defining screening outcomes, applying inclusion criteria, etc)
-
-* `descriptives.py`  : summarise screening outcomes and compute descriptive statistics for the dataset
-
-* `episodestime.py`  : summarise number of episodes over time
-
-* `fitpositivity.py` : analyse FIT positivity rates by threshold, time and demographics 
-
-* `inclusioncrit.py` : summarise included and excluded episodes in a simpler way by using broader categories
-
-* `lateresponder.py` : check missing late-responder episodes
-
-* `modelsdem.R`      : run multivariable logistic regression models for obtaining adjusted odds ratios for age, sex, deprivation, and screening history.
-
-* `outcomesdem.py`   : analyse screening outcomes by age, sex, deprivation (and screening history)
-
-* `utils.py`         : some helper functions, esp. for computing percentages with confidence intervals
