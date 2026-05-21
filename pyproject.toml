@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "nhsebcss"
 version = "0.0.1"
 authors = [{name = "Andres Tamm"}]
-description = "Comparing machine learning models to the faecal immunochemical test (FIT) for predicting colorectal cancer"
+description = "Analysis of the NHS England Bowel Cancer Screening Programme data"
 readme = "README.md"
 requires-python = ">=3.9"
 dynamic = ["dependencies"]
