@@ -10,27 +10,68 @@ library(dplyr)
 out_path <- "Z:/andres/nhsebcss/results/primary"
 
 
-# Helper 
-coef_df <- function(fit, model_name){
-  s <- data.frame(summary(fit)$coefficients)
-  colnames(s) <- c("estimate", "se", "z", "p_val")
-  s$or <- exp(s$estimate)
-  s <- s[, colnames(s) != 'se']
-  s$model <- model_name
-  s$term <- rownames(s)
-  s$p_val_sig <- ''
-  for(v in c(0.05, 0.01, 0.001)){
-    mask <- s$p_val < v
-    s[mask, 'p_val_sig'] <- paste('<', v)
+# Helper: starting from a main-effects logistic model, add two-way interactions 
+# and keep each one only if it significantly improves fit (likelihood-ratio [LRT] test)
+# Args:
+#  outcome : name of the binary outcome column in dataframe 'data'
+#  data    : dataframe containing the outcome and predictor columns
+#  alpha   : significance threshold (p-value) for the LRT test
+#  forward : if TRUE, perform forward selection using the order defined in the interactions variable
+#            if FALSE, each interaction term is added to the main effects model only
+#               and the expanded model is tested against the main effects model each time
+# Returns:
+#  a list with elements 
+#   `model` (fitted model), 
+#   `kept` (character vector of retained interactions),
+#   `kept_str` (character string of retained interactions)
+# Created originally with Claude Code and Claude Opus 4.8, then slightly modified and manually verified
+select_interactions <- function(outcome, data, alpha=0.05, forward=FALSE){
+  base_terms <- "age_group_granular + subject_gender + prevalent_incident_status + imd_quintile"
+
+  # Fit the main-effects model plus any extra terms
+  fit_with <- function(extra){
+    rhs <- base_terms
+    if(length(extra) > 0){
+      rhs <- paste(rhs, "+", paste(extra, collapse=" + "))
+    }
+    glm(as.formula(paste(outcome, "~ 1 +", rhs)), data=data, family=binomial())
   }
-  
-  ci <- exp(confint.default(fit))
-  colnames(ci) <- c("or_low", "or_upp")
-  
-  s <- cbind(s, ci)
-  s <- s[, c("model", "term", "or", "or_low", "or_upp", "z", "p_val", "p_val_sig")]
-  rownames(s) <- NULL
-  return(s)
+
+  # Interaction terms to test
+  interactions <- c("age_group_granular:subject_gender",
+                    "age_group_granular:imd_quintile",
+                    "age_group_granular:prevalent_incident_status",
+                    "imd_quintile:subject_gender",
+                    "imd_quintile:prevalent_incident_status",
+                    "subject_gender:prevalent_incident_status")
+
+  # Test interaction terms using likelihood-ratio test
+  cat(sprintf("\n=== Selecting two-way interactions for '%s' ===\n", outcome))
+  kept <- character(0)
+  fit0 <- fit_with(kept)
+  for(term in interactions){
+    if(forward){
+      fit_add <- fit_with(c(kept, term))
+    } else {
+      fit_add <- fit_with(term)
+    }
+    pval <- anova(fit0, fit_add, test="Chisq")[["Pr(>Chi)"]][2]
+    keep <- !is.na(pval) && pval < alpha
+    cat(sprintf("  %-48s p = %-12.4g %s\n", gsub(":", " * ", term), pval,
+                if(keep) "KEPT" else "dropped"))
+    if(keep){
+      if(forward) fit0 <- fit_add        # extended model becomes the new base
+      kept <- c(kept, term)
+    }
+  }
+
+  fit_final <- fit_with(kept)
+
+  kept_str <- paste(gsub(":", " * ", kept), collapse=", ")
+  if(nchar(kept_str) == 0) kept_str <- "(none)"
+  cat(sprintf("Interactions kept for '%s': %s\n", outcome, kept_str))
+
+  return(list(model=fit_final, kept=kept, kept_str=kept_str))
 }
 
 
@@ -47,7 +88,7 @@ outcomes_without_positive_fit <- c('FIT negative',
 mask <- df$outcome %in% outcomes_without_positive_fit
 sum(mask)
 df <- df[!mask,]
-nrow(df)
+nrow(df)  # 351,359
 
 for(i in 1:10){  # Free up memory after reducing the dataset
   gc()
@@ -55,17 +96,32 @@ for(i in 1:10){  # Free up memory after reducing the dataset
 
 # Drop episodes with missing IMD data
 mask <- df$imd_quintile == ""
-sum(mask)  ## 528
+sum(mask)  ## 532
 mean(mask) * 100  ## 0.15
 df <- df[!mask,]
-nrow(df)
+nrow(df)  # 350,827
 
 s <- df %>% group_by(imd_quintile) %>% summarise(count=n())
-s  # min 63,540
+min(s$count)  # min 64,043
+
+
+# Drop ages <55 as those not present for all screening histories
+table(df[df$prevalent_incident_status == 'Prevalent',]$subject_age_at_episode_start)
+table(df[df$prevalent_incident_status == 'Incident',]$subject_age_at_episode_start)
+mask <- df$subject_age_at_episode_start < 55
+df <- df[!mask, ]
+nrow(df)  # 346,070
+
+# Add granular age grouping
+age_max = max(df$subject_age_at_episode_start) + 1
+breaks = c(55, 60, 65, 70, 75, age_max)
+labels = c("55-59", "60-64", "65-69", "70-74", "75+")
+df$age_group_granular <- cut(df$subject_age_at_episode_start, breaks=breaks, labels=labels, right=FALSE)
+table(df$age_group_granular)
 
 # Categorical variables to factors
-df$age_group_screen2 <- as.factor(df$age_group_screen2)
-df$age_group_screen2 <- relevel(df$age_group_screen2, ref="50-59")
+df$age_group_granular <- as.factor(df$age_group_granular)
+df$age_group_granular <- relevel(df$age_group_granular, ref="55-59")
 
 df$subject_gender <- as.factor(df$subject_gender)
 df$subject_gender <- relevel(df$subject_gender, ref="Female")
@@ -78,84 +134,24 @@ df$imd_quintile <- relevel(df$imd_quintile, ref="05 - Least deprived")
 
 # Define some required outcome variables (indicator for advanced polyps is already in the df)
 df$crc <- ifelse(df$outcome == "Colorectal cancer", 1, 0)
+df$acp <- ifelse(df$outcome == "Advanced premalignant polyp", 1, 0)
 df$no_investigation <- ifelse(df$outcome == 'FIT positive, no investigation', 1, 0)
+
+# Use simple outcome cats
+df$outcome <- df$outcome_simple
 
 
 # ---- Model non-investigation rate ----
+sum(df$no_investigation)  # 74,824
 
-# Basic model
-fit0 <- glm(no_investigation ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile,
-            data=df, family=binomial())
-summary(fit0)
-
-# Model with interactions
-fit1 <- glm(no_investigation ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile +
-              age_group_screen2 * imd_quintile + prevalent_incident_status * imd_quintile,
-            data=df, family=binomial())
-summary(fit1)
-anova(fit0, fit1, test = "Chisq")
-
-# Model with interactions
-fit2 <- glm(no_investigation ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile +
-               subject_gender * imd_quintile,
-            data=df, family=binomial())
-summary(fit2)
-anova(fit0, fit2, test = "Chisq")
-
-betas <- coef(fit2)
-bf <- betas['imd_quintile01 - Most deprived']
-bm <- bf + betas['subject_genderMale:imd_quintile01 - Most deprived']
-exp(bf)
-exp(bm)
-
-r <- coef_df(fit2, 'noninvestigation')
-
-## get CI for OR for males too 
-df$subject_gender_relevel <- relevel(df$subject_gender, ref="Male")
-fit3 <- glm(no_investigation ~ 1 + age_group_screen2 + subject_gender_relevel + prevalent_incident_status + imd_quintile +
-              subject_gender_relevel * imd_quintile,
+# Main effects model
+fit0 <- glm(no_investigation ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile,
             data=df, family=binomial())
 
-r2 <- coef_df(fit3, 'noninvestigation')
-r2 <- r2[r2$term == 'imd_quintile01 - Most deprived',]
-r2[, 'term'] <- 'imd_quintile01 - Most deprived_Male'
-r <- rbind(r, r2)
-
-
-# Dbl check whether effect remains in GAM (yes)
-fit4 <- mgcv::gam(no_investigation ~ 1 + s(subject_age_at_episode_start) + subject_gender + prevalent_incident_status + 
-                    imd_quintile + subject_gender * imd_quintile, data=df, family=binomial())
-summary(fit4)
-
-
-s <- summary(fit4)$p.coeff
-s['imd_quintile01 - Most deprived_Male'] <- s['imd_quintile01 - Most deprived'] + s['subject_genderMale:imd_quintile01 - Most deprived']
-s <- exp(s)
-s['subject_genderMale']
-1 / s['subject_genderMale']
-s['prevalent_incident_statusIncident']
-s['imd_quintile01 - Most deprived']
-s['imd_quintile01 - Most deprived_Male']
-
-
-## save coef
-write.csv(r, paste(out_path, '/glm_noinvestigation.csv', sep=''),
-          row.names=FALSE)
-
-
-# Explore predicted probabilities of no investigation from the model
-pred_data <- df[,c("age_group_screen2", "prevalent_incident_status", "subject_gender", "imd_quintile")]
-pred_data <- pred_data[!duplicated(pred_data),]
-pred_data <- pred_data %>% arrange(prevalent_incident_status, age_group_screen2, imd_quintile)
-gc()
-
-pred <- predict(fit2, newdata=pred_data, type='response', se.fit=TRUE)
-pred_data$y_prob <- pred$fit * 100
-pred_data$y_prob_se <- pred$se.fit * 100
-pred_data$y_prob_low <- pred_data$y_prob - 1.96 * pred_data$y_prob_se
-pred_data$y_prob_upp <- pred_data$y_prob + 1.96 * pred_data$y_prob_se
-write.csv(pred_data, paste(out_path, '/glm_noinvestigation_pred.csv', sep=''),
-          row.names=FALSE)
+# Add two-way interactions, keeping those that improve fit
+noinv_interactions <- select_interactions("no_investigation", df)
+noinv_model <- noinv_interactions$model
+noinv_kept  <- noinv_interactions$kept_str
 
 
 # ---- Model CRC rate ----
@@ -168,100 +164,84 @@ outcomes_without_investigation <- c('FIT negative',
 mask <- df$outcome %in% outcomes_without_investigation
 sum(mask)
 df <- df[!mask,]
-nrow(df)
-
+nrow(df)     # 268,147
+sum(df$crc)  # 23,410
+sum(df$acp)  # 83,149
 for(i in 1:10){
   gc()
 }
 
 s <- df %>% group_by(imd_quintile) %>% summarise(count=n())
-s   ## min 45692
+min(s$count)  ## min 44,948
 
-
-# CRC
-fit0 <- glm(crc ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile,
+# Main effects model
+fit0 <- glm(crc ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile,
             data=df, family=binomial())
 summary(fit0)
 
-fit1 <- glm(crc ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile +
-              age_group_screen2 * imd_quintile + prevalent_incident_status * imd_quintile + 
-              subject_gender * imd_quintile,
-            data=df, family=binomial())
-summary(fit1)
-anova(fit0, fit1, test = "Chisq")
-
-r <- coef_df(fit0, 'crc_main')
-write.csv(r, paste(out_path, '/glm_crc.csv', sep=''),
-          row.names=FALSE)
-
-
-# Dbl check whether effect remains in GAM (yes)
-fit2 <- mgcv::gam(crc ~ 1 + s(subject_age_at_episode_start) + subject_gender + prevalent_incident_status + 
-                    imd_quintile, data=df, family=binomial())
-summary(fit2)
-exp(coef(fit2))
-
-
-s <- summary(fit2)$p.coeff
-s <- exp(s)
-s['subject_genderMale']
-s['prevalent_incident_statusIncident']
-s['imd_quintile01 - Most deprived']
-
-
-
-# Explore predicted probabilities of CRC from the model
-pred_data <- df[,c("age_group_screen2", "prevalent_incident_status", "subject_gender", "imd_quintile")]
-pred_data <- pred_data[!duplicated(pred_data),]
-pred_data <- pred_data %>% arrange(prevalent_incident_status, age_group_screen2, imd_quintile)
-gc()
-
-pred <- predict(fit0, newdata=pred_data, type='response', se.fit=TRUE)
-pred_data$y_prob <- pred$fit * 100
-pred_data$y_prob_se <- pred$se.fit * 100
-pred_data$y_prob_low <- pred_data$y_prob - 1.96 * pred_data$y_prob_se
-pred_data$y_prob_upp <- pred_data$y_prob + 1.96 * pred_data$y_prob_se
-write.csv(pred_data, paste(out_path, '/glm_crc_pred.csv', sep=''),
-          row.names=FALSE)
+# Add two-way interactions, keeping those that improve fit
+crc_interactions <- select_interactions("crc", df)
+crc_model <- crc_interactions$model
+crc_kept  <- crc_interactions$kept_str
 
 
 # ---- Model ACP rate ----
-fit0 <- glm(advanced_polyp ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile,
+
+# Main effects model
+fit0 <- glm(acp ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile,
             data=df, family=binomial())
 summary(fit0)
 
-fit1 <- glm(advanced_polyp ~ 1 + age_group_screen2 + subject_gender + prevalent_incident_status + imd_quintile +
-              age_group_screen2 * imd_quintile + prevalent_incident_status * imd_quintile + subject_gender * imd_quintile,
-            data=df, family=binomial())
-summary(fit1)
+# Sequentially add two-way interactions, keeping those that improve fit
+acp_interactions <- select_interactions("acp", df)
+acp_model <- acp_interactions$model
+acp_kept  <- acp_interactions$kept_str
 
-anova(fit0, fit1, test = "Chisq")
 
-r <- coef_df(fit0, 'acp_main')
-write.csv(r, paste(out_path, '/glm_acp.csv', sep=''),
+# ---- Save kept interactions per outcome ----
+interactions_kept <- data.frame(
+  outcome = c("no investigation", "crc", "acp"),
+  interactions = c(noinv_interactions$kept_str,
+                   crc_interactions$kept_str,
+                   acp_interactions$kept_str),
+  stringsAsFactors = FALSE
+)
+print(interactions_kept)
+write.csv(interactions_kept, paste(out_path, '/glm_interactions.csv', sep=''),
           row.names=FALSE)
 
+# Map a p-value to a significance label
+signif_label <- function(p){
+  ifelse(is.na(p),   "",
+  ifelse(p < 0.001,  "<0.001",
+  ifelse(p < 0.01,   "<0.01",
+  ifelse(p < 0.05,   "<0.05",
+                     "ns"))))
+}
 
-# Dbl check whether effect remains in GAM (yes)
-fit2 <- mgcv::gam(advanced_polyp ~ 1 + s(subject_age_at_episode_start) + subject_gender + prevalent_incident_status + 
-                    imd_quintile, data=df, family=binomial())
-summary(fit2)
-exp(coef(fit2))
+# Build a tidy coefficient table for one fitted glm
+coef_table <- function(fit, outcome_label){
+  sm <- summary(fit)$coefficients          # Estimate, Std. Error, z value, Pr(>|z|)
+  p  <- sm[, "Pr(>|z|)"]
+  data.frame(
+    outcome   = outcome_label,
+    term      = rownames(sm),
+    coef      = sm[, "Estimate"],
+    or        = exp(sm[, "Estimate"]),
+    std_error = sm[, "Std. Error"],
+    p_value   = p,
+    signif    = signif_label(p),
+    row.names = NULL,
+    stringsAsFactors = FALSE
+  )
+}
 
+coefs_table <- rbind(
+  coef_table(noinv_interactions$model, "no investigation"),
+  coef_table(crc_interactions$model,   "crc"),
+  coef_table(acp_interactions$model,   "acp")
+)
 
-s <- summary(fit2)$p.coeff
-s <- exp(s)
-s['subject_genderMale']
-s['prevalent_incident_statusIncident']
-s['imd_quintile01 - Most deprived']
-
-
-
-# Explore predicted probabilities of ACP from the model
-pred <- predict(fit0, newdata=pred_data, type='response', se.fit=TRUE)
-pred_data$y_prob <- pred$fit * 100
-pred_data$y_prob_se <- pred$se.fit * 100
-pred_data$y_prob_low <- pred_data$y_prob - 1.96 * pred_data$y_prob_se
-pred_data$y_prob_upp <- pred_data$y_prob + 1.96 * pred_data$y_prob_se
-write.csv(pred_data, paste(out_path, '/glm_acp_pred.csv', sep=''),
+print(coefs_table)
+write.csv(coefs_table, paste(out_path, '/glm_coefficients.csv', sep=''),
           row.names=FALSE)
