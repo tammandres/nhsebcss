@@ -26,7 +26,8 @@ df = pd.read_csv(data_path_clean / 'episodes_clean.csv',
                           'subject_gender', 'prevalent_incident_status', 'age_group_screen2', 'imd_quintile',
                           'outcome', 'advanced_polyp', 'nonadvanced_polyp', 'premalignant_polyp',
                           'analyser_reading_used', 'imd_decile', 'cancer_at_endoscopy', 'num_kit',
-                          'num_reading', 'num_premalignant_polyp', 'premalignant_polyp', 'kit_result'])
+                          'num_reading', 'num_premalignant_polyp', 'premalignant_polyp', 'kit_result',
+                          'subject_age_at_episode_start'])
 n_epi = df.anon_subject_epis_id.nunique()
 assert df.shape[0] == n_epi
 
@@ -262,7 +263,18 @@ out['Percent of investigated episodes'] = out['Percent of investigated episodes'
 out = out.reset_index()
 out
 
-
 out.to_csv(out_path / 'table2_outcomes-summary.csv', index=False)
 #endregion
 
+
+## Dbl check: when no FIT result, is it spoilt kit? 99.7% times yes.
+dfsub = df.loc[df.outcome == 'No FIT result']
+dfsub.kit_result.value_counts(normalize=True) * 100
+
+
+## Dbl check num episodes with age <60 and <55
+dfsub = df.loc[df.subject_age_at_episode_start < 60]
+dfsub.subject_age_at_episode_start.value_counts(sort=False)
+
+dfsub = df.loc[df.subject_age_at_episode_start < 55]
+dfsub.subject_age_at_episode_start.value_counts(sort=False)
