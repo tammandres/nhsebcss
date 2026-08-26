@@ -4,7 +4,7 @@ This repository accompanies the publication "Faecal immunochemical test for haem
 
 Andres Tamm
 
-21 May 2026
+26 August 2026
 
 
 # Installation
