@@ -46,40 +46,6 @@ for c in date_cols:
 # Create a variable that denotes each year-quarter
 df['year_quarter'] = df.test_kit_logged_year.astype(str) + '-Q' + df.test_kit_logged_quarter.astype(str)
 
-# Get outcome categories that were associated with an investigation, and those that were not
-outcomes = df.outcome.unique().tolist()
-outcomes_without_investigation = ['FIT negative', 'No FIT result', 
-                                  'FIT positive, no investigation', 
-                                  'FIT positive, unknown outcome']
-outcomes_with_investigation = [c for c in outcomes if c not in outcomes_without_investigation]
-print(outcomes_without_investigation, outcomes_with_investigation)
-assert all(c in outcomes for c in outcomes_without_investigation)
-
-# Get outcomes implying a positive FIT test
-outcomes_fit_pos = outcomes_with_investigation + ['FIT positive, no investigation', 
-                                                  'FIT positive, unknown outcome']
-assert all(c in outcomes for c in outcomes_fit_pos)
-
-# Fill missing IMD values? Not atm - see comment in outcomesdem.py
-test = df.imd_quintile.isna()
-df['imd_mis'] = test
-print('IMD missing: {} ({:.2f}%)'.format(test.sum(), test.mean()*100))
-df.groupby('imd_mis')['outcome'].value_counts(normalize=False)
-#df.imd_quintile = df.imd_quintile.fillna('NA')
-df.groupby('imd_quintile', dropna=False).size()
-
-# Check for missing values in other group cols
-group_cols = ['subject_gender', 'prevalent_incident_status', 'age_group_screen2']
-assert not any(df[c].isna().any() for c in group_cols)
-
-# Add rows for nonhierarchical outcomes, and update outcome lists
-# This makes it easier to compute rates of all outcomes using the grouped_count()
-assert df.anon_subject_epis_id.nunique() == df.shape[0]
-
-# Subset episodes with adequate FIT participation
-df_fit = df.loc[df.outcome != 'No FIT result']
-assert not df_fit.analyser_reading_used.isna().any()
-
 #endregion
 
 
@@ -93,26 +59,21 @@ print(df.test_kit_logged_date.min(), df.test_kit_logged_date.max())
 mask = (df.test_kit_logged_year.isin([2019, 2024])) & (df.test_kit_logged_quarter == 2)
 dfsub = df.loc[~mask]
 
-# Get count and percentage of all outcomes over time (by year-quarter)
-# Percentages are computed with the total number of episodes in the denominator
-count_over_time = grouped_count(dfsub, ['year_quarter'], 'outcome', ci_method=ci_method)
+# Get count of episodes over time
+count_all = dfsub.groupby('year_quarter').size().rename('ntot').reset_index()
+assert (count_all['ntot'] >= 10).all()
 
 # Map year-quarter to x-axis coordinates
-tmap = count_over_time[['year_quarter']].drop_duplicates().sort_values(by='year_quarter')
+tmap = count_all[['year_quarter']].drop_duplicates().sort_values(by='year_quarter')
 tmap['x'] = np.arange(tmap.shape[0])
 tmap['xticklabel'] = tmap.year_quarter.str[5:] + '\n' + tmap.year_quarter.str[:4]
 tmap['year'] = tmap.year_quarter.str[:4].astype(int)
 tmap['quarter'] = tmap.year_quarter.str[6:].astype(int)
 mask = tmap.year_quarter.str.lower().str.contains('q1')
 tmap.loc[~mask, ['xticklabel']] = None
-
-# Add x-axis coordinates to count data
-count_over_time = count_over_time.merge(tmap, how='left')
+count_all = count_all.merge(tmap, how='left')
 
 # This is a simple graph showing the number of episodes by year-quarter
-count_all = count_over_time[['year_quarter', 'ntot', 'x', 'xticklabel']].drop_duplicates()
-assert (count_all['ntot'] >= 10).all()
-
 fig, ax = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
 ax.plot(count_all['x'], count_all['ntot'])
 ax.scatter(count_all['x'], count_all['ntot'], s=8)
@@ -131,4 +92,3 @@ plt.close()
 
 count_all.drop(labels=['x', 'xticklabel'], axis=1).to_csv(out_path_sub / 'num-episodes-by-quarter.csv', index=False)
 #endregion
-
