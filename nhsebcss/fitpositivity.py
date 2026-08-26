@@ -303,7 +303,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     # demographic value, the demographic value goes on the x-axis (as in outcomesdem.py)
     # and each line is a FIT threshold. Layout is still 2 rows (number / percent) x 3
     # columns (age, deprivation, sex) [this code block was added by Claude and manually checked]
-    thr_plot = [120, 100, 80, 60, 40, 20, 10]
+    thr_plot = [10, 20, 40, 60, 80, 100, 120]  #[120, 100, 80, 60, 40, 20, 10]
     #thr_colors = plt.cm.viridis(np.linspace(0, 1, len(thr_plot)))
     thr_colors = ['C' + str(i) for i, __ in enumerate(thr_plot)]
     pointsize = 18
