@@ -13,10 +13,7 @@ results_path = Path(r'Z:\andres\nhsebcss\results\primary')
 # Summary
 files = os.listdir(results_path)
 
-files_exclude = ['removed_episodes.csv', 
-                 'glm_acp_pred.csv', 
-                 'glm_crc_pred.csv', 
-                 'glm_noinvestigation_pred.csv',
+files_exclude = ['removed_episodes.csv',
                  'dataprep_log.txt'
                  ]
 assert all(f in files for f in files_exclude)
