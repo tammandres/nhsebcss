@@ -1,6 +1,6 @@
 # Analysis of NHSE Bowel Screening data
 
-This repository accompanies the publication "Faecal immunochemical test for haemoglobin positivity rates and outcomes across 18 million episodes in the English Colorectal Cancer Screening Programme between 2019 and 2024".
+This repository accompanies the publication `Faecal immunochemical test for haemoglobin positivity rates and outcomes across 18 million episodes in the English Colorectal Cancer Screening Programme between 2019 and 2024`.
 
 Andres Tamm
 
