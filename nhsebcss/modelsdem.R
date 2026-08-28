@@ -1,8 +1,16 @@
-# Outcome rates by demographics - adjusted models
+# -------------------------------------------------------------------
+# Model non-investigation rates and colorectal investigation findings
+# by age group, sex, deprivation (IMD), and screening history
+# 
+# Motivation: identify *potential* two-way interactions.
+# These can later be checked by visualisation or by looking at outcome
+# proportions by cell, to understand whether they are also clinically
+# and not just statistically significant.
+# -------------------------------------------------------------------
 #install.packages("mgcv", version="1.9-4")
 #install.packages("data.table", version="1.17.8")
 #install.packages('dplyr', version="1.1.4")
-library(mgcv)
+#library(mgcv)
 library(data.table)
 library(dplyr)
 
@@ -10,22 +18,22 @@ library(dplyr)
 out_path <- "Z:/andres/nhsebcss/results/primary"
 
 
-# Helper: starting from a main-effects logistic model, add two-way interactions 
-# and keep each one only if it significantly improves fit (likelihood-ratio [LRT] test)
+# Helper: fit a logistic model containing all six two-way interaction groups, then test
+# each interaction group by dropping it from the full model and comparing the reduced
+# model with the full model using a likelihood-ratio test (LRT). An interaction is kept
+# if dropping it significantly worsens fit (p < alpha), and dropped otherwise. Every
+# interaction is tested against the same full model (no forward/backward stepwise path).
 # Args:
 #  outcome : name of the binary outcome column in dataframe 'data'
 #  data    : dataframe containing the outcome and predictor columns
 #  alpha   : significance threshold (p-value) for the LRT test
-#  forward : if TRUE, perform forward selection using the order defined in the interactions variable
-#            if FALSE, each interaction term is added to the main effects model only
-#               and the expanded model is tested against the main effects model each time
 # Returns:
-#  a list with elements 
-#   `model` (fitted model), 
-#   `kept` (character vector of retained interactions),
+#  a list with elements
+#   `model`    (fitted model with the kept interactions),
+#   `kept`     (character vector of retained interactions),
 #   `kept_str` (character string of retained interactions)
-# Created originally with Claude Code and Claude Opus 4.8, then slightly modified and manually verified
-select_interactions <- function(outcome, data, alpha=0.05, forward=FALSE){
+# Created originally with Claude Code (and Opus 4.8), then verified/modified.
+select_interactions <- function(outcome, data, alpha=0.05){
   base_terms <- "age_group_granular + subject_gender + prevalent_incident_status + imd_quintile"
 
   # Fit the main-effects model plus any extra terms
@@ -45,22 +53,18 @@ select_interactions <- function(outcome, data, alpha=0.05, forward=FALSE){
                     "imd_quintile:prevalent_incident_status",
                     "subject_gender:prevalent_incident_status")
 
-  # Test interaction terms using likelihood-ratio test
+  # Base model is the full model with all six interaction groups. Each interaction is
+  # then tested by dropping it from the full model (likelihood-ratio test).
   cat(sprintf("\n=== Selecting two-way interactions for '%s' ===\n", outcome))
+  fit_full <- fit_with(interactions)
   kept <- character(0)
-  fit0 <- fit_with(kept)
   for(term in interactions){
-    if(forward){
-      fit_add <- fit_with(c(kept, term))
-    } else {
-      fit_add <- fit_with(term)
-    }
-    pval <- anova(fit0, fit_add, test="Chisq")[["Pr(>Chi)"]][2]
-    keep <- !is.na(pval) && pval < alpha
+    fit_drop <- fit_with(setdiff(interactions, term))          # full model minus this interaction
+    pval <- anova(fit_drop, fit_full, test="Chisq")[["Pr(>Chi)"]][2]
+    keep <- !is.na(pval) && pval < alpha                       # keep if dropping worsens fit
     cat(sprintf("  %-48s p = %-12.4g %s\n", gsub(":", " * ", term), pval,
                 if(keep) "KEPT" else "dropped"))
     if(keep){
-      if(forward) fit0 <- fit_add        # extended model becomes the new base
       kept <- c(kept, term)
     }
   }
@@ -104,7 +108,6 @@ nrow(df)  # 350,827
 s <- df %>% group_by(imd_quintile) %>% summarise(count=n())
 min(s$count)  # min 64,043
 
-
 # Drop ages <55 as those not present for all screening histories
 table(df[df$prevalent_incident_status == 'Prevalent',]$subject_age_at_episode_start)
 table(df[df$prevalent_incident_status == 'Incident',]$subject_age_at_episode_start)
@@ -112,7 +115,7 @@ mask <- df$subject_age_at_episode_start < 55
 df <- df[!mask, ]
 nrow(df)  # 346,070
 
-# Add granular age grouping
+# Add granular age groups
 age_max = max(df$subject_age_at_episode_start) + 1
 breaks = c(55, 60, 65, 70, 75, age_max)
 labels = c("55-59", "60-64", "65-69", "70-74", "75+")
@@ -148,7 +151,7 @@ sum(df$no_investigation)  # 74,824
 fit0 <- glm(no_investigation ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile,
             data=df, family=binomial())
 
-# Add two-way interactions, keeping those that improve fit
+# Check which two-way interactions can be dropped from a full model with main effects and all six interaction groups
 noinv_interactions <- select_interactions("no_investigation", df)
 noinv_model <- noinv_interactions$model
 noinv_kept  <- noinv_interactions$kept_str
@@ -156,7 +159,7 @@ noinv_kept  <- noinv_interactions$kept_str
 
 # ---- Model CRC rate ----
 
-# Keep episodes with whole colon investigation
+# Keep episodes with colorectal investigation
 outcomes_without_investigation <- c('FIT negative', 
                                     'No FIT result', 
                                     'FIT positive, no investigation',
@@ -179,7 +182,7 @@ fit0 <- glm(crc ~ 1 + age_group_granular + subject_gender + prevalent_incident_s
             data=df, family=binomial())
 summary(fit0)
 
-# Add two-way interactions, keeping those that improve fit
+# Check which two-way interactions can be dropped from a full model with main effects and all six interaction groups
 crc_interactions <- select_interactions("crc", df)
 crc_model <- crc_interactions$model
 crc_kept  <- crc_interactions$kept_str
@@ -192,7 +195,7 @@ fit0 <- glm(acp ~ 1 + age_group_granular + subject_gender + prevalent_incident_s
             data=df, family=binomial())
 summary(fit0)
 
-# Sequentially add two-way interactions, keeping those that improve fit
+# Check which two-way interactions can be dropped from a full model with main effects and all six interaction groups
 acp_interactions <- select_interactions("acp", df)
 acp_model <- acp_interactions$model
 acp_kept  <- acp_interactions$kept_str
