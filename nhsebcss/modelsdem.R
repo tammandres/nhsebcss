@@ -53,20 +53,41 @@ select_interactions <- function(outcome, data, alpha=0.05){
                     "imd_quintile:prevalent_incident_status",
                     "subject_gender:prevalent_incident_status")
 
+  # Simplify a p-value to a significance label
+  pval_to_sig <- function(p){
+    if(is.na(p)) return("ns")
+    if(p < 0.001) return("<0.001")
+    if(p < 0.01)  return("<0.01")
+    if(p < 0.05)  return("<0.05")
+    return("ns")
+  }
+
   # Base model is the full model with all six interaction groups. Each interaction is
-  # then tested by dropping it from the full model (likelihood-ratio test).
+  # then tested by dropping it from the full model (likelihood-ratio test), storing the
+  # LRT degrees of freedom, p-value and keep/drop decision for each.
   cat(sprintf("\n=== Selecting two-way interactions for '%s' ===\n", outcome))
   fit_full <- fit_with(interactions)
   kept <- character(0)
+  details <- data.frame(outcome_variable = character(0), interaction = character(0),
+                        df = numeric(0), pval = numeric(0), pval_sig = character(0),
+                        decision = character(0), stringsAsFactors = FALSE)
   for(term in interactions){
     fit_drop <- fit_with(setdiff(interactions, term))          # full model minus this interaction
-    pval <- anova(fit_drop, fit_full, test="Chisq")[["Pr(>Chi)"]][2]
+    lrt <- anova(fit_drop, fit_full, test="Chisq")
+    lrt_df <- lrt[["Df"]][2]
+    pval   <- lrt[["Pr(>Chi)"]][2]
     keep <- !is.na(pval) && pval < alpha                       # keep if dropping worsens fit
     cat(sprintf("  %-48s p = %-12.4g %s\n", gsub(":", " * ", term), pval,
                 if(keep) "KEPT" else "dropped"))
     if(keep){
       kept <- c(kept, term)
     }
+    details <- rbind(details,
+                     data.frame(outcome_variable = outcome,
+                                interaction = gsub(":", " * ", term),
+                                df = lrt_df, pval = pval, pval_sig = pval_to_sig(pval),
+                                decision = if(keep) "Keep" else "Drop",
+                                stringsAsFactors = FALSE))
   }
 
   fit_final <- fit_with(kept)
@@ -75,7 +96,7 @@ select_interactions <- function(outcome, data, alpha=0.05){
   if(nchar(kept_str) == 0) kept_str <- "(none)"
   cat(sprintf("Interactions kept for '%s': %s\n", outcome, kept_str))
 
-  return(list(model=fit_final, kept=kept, kept_str=kept_str))
+  return(list(model=fit_final, kept=kept, kept_str=kept_str, details=details))
 }
 
 
@@ -211,6 +232,15 @@ interactions_kept <- data.frame(
 )
 print(interactions_kept)
 write.csv(interactions_kept, paste(out_path, '/glm_interactions.csv', sep=''),
+          row.names=FALSE)
+
+
+# ---- Save per-interaction LRT details across outcomes ----
+interactions_lrt <- rbind(noinv_interactions$details,
+                          crc_interactions$details,
+                          acp_interactions$details)
+print(interactions_lrt)
+write.csv(interactions_lrt, paste(out_path, '/glm_interactions_lrt.csv', sep=''),
           row.names=FALSE)
 
 # Map a p-value to a significance label
