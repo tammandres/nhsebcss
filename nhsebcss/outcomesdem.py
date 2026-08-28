@@ -388,7 +388,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'fig4_outcomes-by-demographics' + age_suffix + '.png'
+    out_name = 'fig7_outcomes-by-demographics' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -581,7 +581,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'fig5_no-investigation-by-demographics' + age_suffix + '.png'
+    out_name = 'fig6_no-investigation-by-demographics' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -806,7 +806,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'suppl_fig5_outcomes-investigated-by-demographics-history' + age_suffix + '.png'
+    out_name = 'suppl_fig7_outcomes-investigated-by-demographics-history' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -969,7 +969,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'suppl_fig7_polyp-nonexclusive-by-demographics-history' + age_suffix + '.png'
+    out_name = 'suppl_fig8_polyp-nonexclusive-by-demographics-history' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -1056,7 +1056,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'suppl_fig7_polyp-nonexclusive-by-demographics' + age_suffix + '.png'
+    out_name = 'suppl_fig8b_polyp-nonexclusive-by-demographics' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -1131,7 +1131,7 @@ letters = ['A', 'B']
 for i in range(len(ax)):
     ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-out_name = 'suppl_fig8_no-investigation-by-age-imd-given-sex-history.png'
+out_name = 'suppl_fig4a_no-investigation-by-age-imd-given-sex-history.png'
 out_name_svg = out_name[:-4] + '.svg'
 plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
 plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')
@@ -1213,7 +1213,7 @@ letters = ['A', 'B', 'C', 'D', 'E', 'F']
 for i in range(len(ax)):
     ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-out_name = 'suppl_fig9_outcomes-by-age-imd-given-sex-history.png'
+out_name = 'suppl_fig4b_outcomes-by-age-imd-given-sex-history.png'
 out_name_svg = out_name[:-4] + '.svg'
 plt.savefig(out_path / out_name, dpi=300, bbox_inches='tight')
 plt.savefig(out_path / out_name_svg, dpi=300, bbox_inches='tight')

@@ -86,8 +86,8 @@ ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: format(int(x), ',
 ax.grid(which='major', alpha=0.5)
 ax.set_xlabel('Test kit logged date (year-quarter)', fontsize=10)
 ax.set_ylabel('Number of episodes', fontsize=10)
-plt.savefig(out_path_sub / 'fig3_num-episodes-by-quarter.png', dpi=300, bbox_inches='tight')
-plt.savefig(out_path_sub / 'fig3_num-episodes-by-quarter.svg', bbox_inches='tight')
+plt.savefig(out_path_sub / 'fig2_num-episodes-by-quarter.png', dpi=300, bbox_inches='tight')
+plt.savefig(out_path_sub / 'fig2_num-episodes-by-quarter.svg', bbox_inches='tight')
 plt.close()
 
 count_all.drop(labels=['x', 'xticklabel'], axis=1).to_csv(out_path_sub / 'num-episodes-by-quarter.csv', index=False)

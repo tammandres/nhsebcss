@@ -179,7 +179,7 @@ ax[1].set_title('B. Percent of positives')
 ax[0].set_yticks(np.arange(0, pos.num_positives.max() + 200000, 200000))
 ax[1].set_yticks(np.arange(0, pos.percent_positives.max() + 1, 1))
 
-out_name = 'fig6_positivity.png'
+out_name = 'fig4_positivity.png'
 out_name_svg = out_name[:-4] + '.svg'
 plt.savefig(out_path_sub / out_name, dpi=300, bbox_inches='tight')
 plt.savefig(out_path_sub / out_name_svg, dpi=300, bbox_inches='tight')
@@ -285,7 +285,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'fig7_positivity-by-demographics' + age_suffix + '.png'
+    out_name = 'fig5_positivity-by-demographics' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path_sub / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path_sub / out_name_svg, dpi=300, bbox_inches='tight')
@@ -375,7 +375,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'fig7b_positivity-by-demographics-flipped' + age_suffix + '.png'
+    out_name = 'fig5b_positivity-by-demographics-flipped' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path_sub / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path_sub / out_name_svg, dpi=300, bbox_inches='tight')
@@ -455,7 +455,7 @@ for age_group_col, age_suffix in age_group_cols.items():
     for i in range(len(ax)):
         ax[i].set_title(letters[i] + '. ' + ax[i].get_title())
 
-    out_name = 'suppl_fig8_positivity_by_demographics-hist' + age_suffix + '.png'
+    out_name = 'suppl_fig5_positivity_by_demographics-hist' + age_suffix + '.png'
     out_name_svg = out_name[:-4] + '.svg'
     plt.savefig(out_path_sub / out_name, dpi=300, bbox_inches='tight')
     plt.savefig(out_path_sub / out_name_svg, dpi=300, bbox_inches='tight')
