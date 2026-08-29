@@ -176,6 +176,8 @@ fit0 <- glm(no_investigation ~ 1 + age_group_granular + subject_gender + prevale
 noinv_interactions <- select_interactions("no_investigation", df)
 noinv_model <- noinv_interactions$model
 noinv_kept  <- noinv_interactions$kept_str
+noinv_model_simple <- glm(no_investigation ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile +
+                          age_group_granular:prevalent_incident_status, data=df, family=binomial())
 
 
 # ---- Model CRC rate ----
@@ -207,6 +209,8 @@ summary(fit0)
 crc_interactions <- select_interactions("crc", df)
 crc_model <- crc_interactions$model
 crc_kept  <- crc_interactions$kept_str
+crc_model_simple <- glm(crc ~ 1 + age_group_granular + subject_gender + prevalent_incident_status + imd_quintile + 
+                        age_group_granular:prevalent_incident_status, data=df, family=binomial())
 
 
 # ---- Model ACP rate ----
@@ -220,6 +224,7 @@ summary(fit0)
 acp_interactions <- select_interactions("acp", df)
 acp_model <- acp_interactions$model
 acp_kept  <- acp_interactions$kept_str
+acp_model_simple <- fit0
 
 
 # ---- Save kept interactions per outcome ----
@@ -274,7 +279,15 @@ coefs_table <- rbind(
   coef_table(crc_interactions$model,   "crc"),
   coef_table(acp_interactions$model,   "acp")
 )
-
 print(coefs_table)
 write.csv(coefs_table, paste(out_path, '/glm_coefficients.csv', sep=''),
+          row.names=FALSE)
+
+coefs_table <- rbind(
+  coef_table(noinv_model_simple, "no investigation"),
+  coef_table(crc_model_simple,   "crc"),
+  coef_table(acp_model_simple,   "acp")
+)
+print(coefs_table)
+write.csv(coefs_table, paste(out_path, '/glm_coefficients_simple.csv', sep=''),
           row.names=FALSE)
