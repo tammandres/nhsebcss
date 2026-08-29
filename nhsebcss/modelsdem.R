@@ -119,6 +119,15 @@ for(i in 1:10){  # Free up memory after reducing the dataset
   gc()
 }
 
+# Check how many investigated episodes have missing IMD
+outcomes_without_investigation <- c('FIT negative', 
+                                    'No FIT result', 
+                                    'FIT positive, no investigation',
+                                    'FIT positive, unknown outcome')
+mask <- (!df$outcome %in% outcomes_without_investigation) & (df$imd_quintile == "")
+sum(mask)  # 394
+sum(mask) / sum((!df$outcome %in% outcomes_without_investigation)) * 100  #
+
 # Drop episodes with missing IMD data
 mask <- df$imd_quintile == ""
 sum(mask)  ## 532
@@ -183,10 +192,6 @@ noinv_model_simple <- glm(no_investigation ~ 1 + age_group_granular + subject_ge
 # ---- Model CRC rate ----
 
 # Keep episodes with colorectal investigation
-outcomes_without_investigation <- c('FIT negative', 
-                                    'No FIT result', 
-                                    'FIT positive, no investigation',
-                                    'FIT positive, unknown outcome')
 mask <- df$outcome %in% outcomes_without_investigation
 sum(mask)
 df <- df[!mask,]
@@ -266,6 +271,8 @@ coef_table <- function(fit, outcome_label){
     term      = rownames(sm),
     coef      = sm[, "Estimate"],
     or        = exp(sm[, "Estimate"]),
+    or_low    = exp(sm[, "Estimate"] - qnorm(0.975) * sm[, "Std. Error"]),   # 95% CI (Wald)
+    or_high   = exp(sm[, "Estimate"] + qnorm(0.975) * sm[, "Std. Error"]),
     std_error = sm[, "Std. Error"],
     p_value   = p,
     signif    = signif_label(p),
